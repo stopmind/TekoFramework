@@ -1,4 +1,5 @@
 #include "GameBase.hpp"
+#include "Reg.hpp"
 #include "Log.hpp"
 
 namespace Teko {
@@ -13,6 +14,7 @@ namespace Teko {
     void GameBase::start() {
         stopped = false;
         Log::init();
+        Reg::init();
 
         init();
         Log::info("Game init.");
@@ -25,7 +27,7 @@ namespace Teko {
                 tick();
             }
 
-            if (stopped) continue;
+            if (stopped) break;
 
             if (frameClock->getElapsedTime().asSeconds() >= minTimeBetwenFrames) {
                 frameClock->restart();
@@ -33,6 +35,7 @@ namespace Teko {
             }
         }
 
+        Reg::close();
         Log::info("Game ended.");
         Log::close();
     }

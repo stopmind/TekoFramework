@@ -1,7 +1,8 @@
 
 sources = [
     'Log.cpp',
-    'GameBase.cpp'
+    'Reg.cpp',
+    'GameBase.cpp',
 ]
 
 deps = [
