@@ -65,6 +65,8 @@ namespace Teko {
 
     void Reg::init() {
         root = new RegNode(nullptr, "root");
+        root->addNode("Textures");
+        root->addNode("EntitiesTypes");
         Log::info("Registry init.");
     }
 

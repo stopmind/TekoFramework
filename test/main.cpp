@@ -1,16 +1,22 @@
 #include "Log.hpp"
 #include "GameBase.hpp"
 #include "Reg.hpp"
-#include <iostream>
+#include "Assets.hpp"
+
+#include <SFML/Window/Event.hpp>
+#include <SFML/Graphics/Sprite.hpp>
 
 using namespace Teko;
 
 class Game : public GameBase {
-    protected:
+protected:
+    sf::Sprite *sprite;
 
     void init() override {
         setMaxTPS(7);
         setMaxFPS(60);
+
+        window = new sf::RenderWindow(sf::VideoMode(640, 360), "Teko test");
 
         //Test reg
 
@@ -21,10 +27,18 @@ class Game : public GameBase {
         Log::info(Reg::root->hasNode("Test") ? "true" : "false");
         Reg::root->delNode("Test");
         Log::info(Reg::root->hasNode("Test") ? "true" : "false");
+
+        Assets::loadAsset("asset");
+
+        sf::Texture *tex = (sf::Texture *)(Reg::root->getNode("Textures::Agent")->data);
+
+        sprite = new sf::Sprite();
+        sprite->setTexture(*tex);
+        sprite->scale(sf::Vector2f(3.f, 3.f));
     }
 
     void update() override {
-        close();
+
     }
 
     void tick() override {
@@ -32,16 +46,25 @@ class Game : public GameBase {
     }
 
     void draw() override {
-        
+        window->draw(*sprite);
+    }
+
+    void event(sf::Event *event) override {
+        if (event->type == sf::Event::Closed) close();
     }
 
     void close() override {
         stopped = true;
     }
+public:
+    ~Game() {
+        delete sprite;
+    }
 };
 
 int main() {
-    Game g = Game();
+    Game *g = new Game();
 
-    g.start();
+    g->start();
+    delete g;
 }
