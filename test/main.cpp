@@ -2,6 +2,8 @@
 #include "GameBase.hpp"
 #include "Reg.hpp"
 #include "Assets.hpp"
+#include "World/World.hpp"
+#include "TestComponent.hpp"
 
 #include <SFML/Window/Event.hpp>
 #include <SFML/Graphics/Sprite.hpp>
@@ -10,43 +12,54 @@ using namespace Teko;
 
 class Game : public GameBase {
 protected:
-    sf::Sprite *sprite;
+    World* world = nullptr;
 
     void init() override {
         setMaxTPS(7);
         setMaxFPS(60);
 
-        window = new sf::RenderWindow(sf::VideoMode(640, 360), "Teko test");
-
-        //Test reg
-
-        RegNode* node = Reg::root->addNode("Test");
-        Log::info(node->getOwner()->getName());
-        if (Reg::root->getNode("Test") != node) Log::erro("Чет не по плану все пошло.");
-        Log::info(Reg::root->getChildren()[0]->getName());
-        Log::info(Reg::root->hasNode("Test") ? "true" : "false");
-        Reg::root->delNode("Test");
-        Log::info(Reg::root->hasNode("Test") ? "true" : "false");
+        _window = new sf::RenderWindow(sf::VideoMode(640, 360), "Teko test");
 
         Assets::loadAsset("asset");
 
-        sf::Texture *tex = (sf::Texture *)(Reg::root->getNode("Textures::Agent")->data);
+        world = new World();
 
-        sprite = new sf::Sprite();
-        sprite->setTexture(*tex);
-        sprite->scale(sf::Vector2f(3.f, 3.f));
+        Entity* entity = world->createSurface("main")->addEntity("test");
+        auto* testComp = new TestComponent();
+        testComp->setData({});
+        entity->AddComponent(testComp);
+
+        world->selectSurface("main");
     }
 
-    void update() override {
+    void update(float delta) override {
+        world->update(delta);
 
+        sf::Vector2f move;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A)) {
+            move += {-1, 0};
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D)) {
+            move += {1, 0};
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)) {
+            move += {0, -1};
+        }
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S)) {
+            move += {0, 1};
+        }
+
+        Camera* camera = world->getSurface("main")->getCamera();
+        camera->setPosition(camera->getPosition() + (move * delta * 200.f));
     }
 
     void tick() override {
-        
+        world->tick();
     }
 
     void draw() override {
-        window->draw(*sprite);
+        _window->clear();
+        _window->draw(*world);
     }
 
     void event(sf::Event *event) override {
@@ -54,11 +67,11 @@ protected:
     }
 
     void close() override {
-        stopped = true;
+        _stopped = true;
     }
 public:
     ~Game() {
-        delete sprite;
+        delete world;
     }
 };
 

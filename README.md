@@ -13,12 +13,11 @@
 
 # Сборка
 ```
-meson setup build
-cd build
-meson compile
+cmake .
 ```
 
 ## Зависимости
 - SFML
+- tinyxml2
 
 Ну и все собствено.

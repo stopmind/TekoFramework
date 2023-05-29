@@ -5,7 +5,7 @@
 #include <iostream>
 
 namespace Teko {
-    std::ofstream *Log::file;
+    std::ofstream *Log::_file;
 
     void Log::init() {    
         time_t time;
@@ -13,18 +13,18 @@ namespace Teko {
 
         std::ostringstream fileNameString;
         fileNameString << std::put_time(std::localtime(&time), "logs/%d.%m.%Y.log");
-        file = new std::ofstream();
-        file->open(fileNameString.str(), std::ios_base::app);
+        _file = new std::ofstream();
+        _file->open(fileNameString.str(), std::ios_base::app);
         
-        (*file) << "=== START LOG ===" << std::endl;
+        (*_file) << "=== START LOG ===" << std::endl;
         info("Logs init.");
     }
 
     void Log::close() {
         warn("Logs closing");
-        (*file) << "=== END LOG ===" << std::endl << std::endl;
-        file->close();
-        delete file;
+        (*_file) << "=== END LOG ===" << std::endl << std::endl;
+        _file->close();
+        delete _file;
     }
 
 
@@ -32,8 +32,8 @@ namespace Teko {
         time_t time;
         std::time(&time);
 
-        (*file) << std::put_time(std::localtime(&time), "(%H:%M:%S)");
-        (*file) << "["<< type<<"] " << message << std::endl;
+        (*_file) << std::put_time(std::localtime(&time), "(%H:%M:%S)");
+        (*_file) << "[" << type << "] " << message << std::endl;
     }
 
     void Log::info(std::string message) {log("INFO", message);}

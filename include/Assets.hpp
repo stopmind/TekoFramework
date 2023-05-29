@@ -1,31 +1,35 @@
-#pragma once
+#ifndef ASSETS_HPP
+#define ASSETS_HPP
 
 #include <string>
+#include <vector>
+#include <functional>
 #include <map>
+#include <tinyxml2.h>
+
 #include "Reg.hpp"
 
 namespace Teko {
     struct AssetData {
+        std::vector<AssetData *> children;
+        std::string name;
         AssetData* owner;
-        std::map<std::string, AssetData*> object;
-        std::string stringValue;
-        int integerValue;
-        void* resource;
+        void* value;
+
+        ~AssetData();
     };
 
     class Assets {
         private:
-        static RegNode *assetsNode;
-
-        static AssetData* loadFile(std::string path, AssetData* owner);
-        static void functions(std::string name, AssetData* data);
-        static AssetData* value(std::string* text, int* index, AssetData* owner);
-        static AssetData* code(std::string* text, int* index, AssetData* owner);
 
         public:
+        static std::map<std::string, std::function<void(AssetData*, tinyxml2::XMLElement*)>> types;
         static void init();
         static void close();
 
         static void loadAsset(std::string path);
+        static AssetData* loadFile(std::string path, AssetData* owner);
     };
 }
+
+#endif

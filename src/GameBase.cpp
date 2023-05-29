@@ -6,15 +6,15 @@
 
 namespace Teko {
     void GameBase::setMaxTPS(int tickCount) {
-        minTimeBetwenTicks = 1.f / (float)tickCount;
+        _minTimeBetwenTicks = 1.f / (float)tickCount;
     }
 
     void GameBase::setMaxFPS(int frameCount) {
-        minTimeBetwenFrames = 1.f / (float)frameCount;
+        _minTimeBetwenFrames = 1.f / (float)frameCount;
     }
 
     void GameBase::start() {
-        stopped = false;
+        _stopped = false;
         Log::init();
         Reg::init();
         Assets::init();
@@ -23,20 +23,21 @@ namespace Teko {
         Log::info("Game init.");
 
         while (true) {
-            for (sf::Event ev {}; window->pollEvent(ev);) event(&ev);
-            update();
+            for (sf::Event ev {}; _window->pollEvent(ev);) event(&ev);
+            update(_deltaClock->getElapsedTime().asSeconds());
+            _deltaClock->restart();
 
-            if (tickClock->getElapsedTime().asSeconds() >= minTimeBetwenTicks) {
-                tickClock->restart();
+            if (_tickClock->getElapsedTime().asSeconds() >= _minTimeBetwenTicks) {
+                _tickClock->restart();
                 tick();
             }
 
-            if (stopped) break;
+            if (_stopped) break;
 
-            if (frameClock->getElapsedTime().asSeconds() >= minTimeBetwenFrames) {
-                frameClock->restart();
+            if (_frameClock->getElapsedTime().asSeconds() >= _minTimeBetwenFrames) {
+                _frameClock->restart();
                 draw();
-                window->display();
+                _window->display();
             }
         }
 
@@ -48,16 +49,17 @@ namespace Teko {
     }
 
     GameBase::GameBase() {
-        frameClock = new sf::Clock();
-        tickClock = new sf::Clock();
+        _frameClock = new sf::Clock();
+        _tickClock = new sf::Clock();
+        _deltaClock = new sf::Clock();
 
-        minTimeBetwenFrames = 0;
-        minTimeBetwenTicks = 0;
+        _minTimeBetwenFrames = 0;
+        _minTimeBetwenTicks = 0;
     }
 
     GameBase::~GameBase() {
-        delete frameClock;
-        delete tickClock;
-        delete window;
+        delete _frameClock;
+        delete _tickClock;
+        delete _window;
     }
 }

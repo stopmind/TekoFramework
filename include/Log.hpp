@@ -6,7 +6,7 @@
 namespace Teko {
     class Log {
         private:
-        static std::ofstream *file;
+        static std::ofstream *_file;
 
         static void log(std::string type, std::string message);
 

@@ -6,9 +6,9 @@
 namespace Teko {
     class RegNode {
         private:
-        std::vector<RegNode*> children;
-        RegNode* owner;
-        std::string name;
+        std::vector<RegNode*> _children;
+        RegNode* _owner;
+        std::string _name;
         public:
         void* data;
 

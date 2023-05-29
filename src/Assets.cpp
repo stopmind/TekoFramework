@@ -1,214 +1,114 @@
+#include <fstream>
+#include <algorithm>
+
 #include "Assets.hpp"
 #include "Log.hpp"
-#include <fstream>
-#include <iostream>
-#include <algorithm>
 #include "Reg.hpp"
-#include <SFML/Graphics/Texture.hpp>
+#include "Exceptions.hpp"
+#include "AssetFuncs.hpp"
 
 namespace Teko {
-    RegNode *Assets::assetsNode;
+    std::map<std::string, std::function<void(AssetData*, tinyxml2::XMLElement*)>> Assets::types;
 
-    AssetData* Assets::value(std::string* text, int* index, AssetData* owner) {
-        std::string stringVal;
-        std::string functionName;
-        std::string integerStringVal;
+    AssetData::~AssetData() {
+        Log::info("Delete asset data.");
 
-        bool integerStarted = false;
-        bool stringStarted = false;
-        bool functionStarted = false;
-
-        while (true) {
-            if (functionStarted) {
-                if ((*text)[*index] == '.') {
-                    (*index)++;
-                    auto subValue = value(text, index, owner);
-                    functions(functionName, subValue);
-
-                    return subValue;
-                } else {
-                    functionName += (*text)[*index];
-                    (*index)++;
-                    continue;
-                }
-            }
-
-            //integer :/
-            if (integerStarted) {
-                switch ((*text)[*index]) {
-                    case '0':
-                    case '1':
-                    case '2':
-                    case '3':
-                    case '4':
-                    case '5':
-                    case '6':
-                    case '7':
-                    case '8':
-                    case '9':
-                        integerStringVal += (*text)[*index];
-                        (*index)++;
-                        continue;
-
-                    default:
-                        return new AssetData {owner, {}, "", std::stoi(integerStringVal)};
-                }
-            }
-
-            // string
-            if (stringStarted) {
-                if ((*index) >= text->size()) {
-                    Log::erro("String not closed");
-                    exit(1);
-                }
-
-                if ((*text)[*index] == '"') {
-                    (*index)++;
-                    return new AssetData {owner, {}, stringVal};
-                } else {
-                    stringVal += (*text)[*index];
-                    (*index)++;
-                    continue;
-                }
-            }
-
-            // find start
-            switch ((*text)[*index]) {
-                case '"':
-                    (*index)++;
-                    stringStarted = true;
-                    break;
-                case '{':
-                    (*index)++;
-                    return code(text, index, owner);
-
-                    // integer :/
-                case '0':
-                case '1':
-                case '2':
-                case '3':
-                case '4':
-                case '5':
-                case '6':
-                case '7':
-                case '8':
-                case '9':
-                    integerStarted = true;
-                    break;
-
-                default:
-                    functionStarted = true;
-            }
-        }
-    }
-
-    AssetData* Assets::code(std::string* text, int* index, AssetData* owner) {
-        auto* result = new AssetData {owner, std::map<std::string, AssetData*>()};
-        std::string key = std::string();
-
-        while (true) {
-            switch ((*text)[*index]) {
-                case '}':
-                    if (!key.empty()) {
-                        Log::erro("Expected \":\".");
-                        exit(1);
-                    }
-                    return result;
-                case ':':
-                    if (key.empty()) {
-                        Log::erro("Not found key.");
-                        exit(1);
-                    }
-
-                    (*index)++;
-                    result->object[key] = value(text, index, result);
-                    key = "";
-                    break;
-                default:
-                    key += (*text)[*index];
-                    (*index)++;
-            }
-
-            if ((*index) >= text->size()) {
-                Log::erro("Code not finished.");
-                exit(1);
-            }
+        for (auto &child : children) {
+            delete child;
         }
     }
 
     void Assets::init() {
-        assetsNode = Reg::root->addNode("Assets");
+        types = {
+                {"copy", AssetFuncs::copyFunction},
+                {"from_file", AssetFuncs::fromFileFunction},
+                {"texture", AssetFuncs::textureFunction},
+                {"vec2", AssetFuncs::vec2},
+        };
+
         Log::info("Asset init.");
     }
 
     void Assets::close() {
-        Reg::root->delNode("Assets");
-        Log::warn("Asset closed!");
-    }
 
+    }
 
     void Assets::loadAsset(std::string path) {
         if (path[path.size()-1] != '/') path += "/";
-        std::string infoPath = path;
-        infoPath += "AssetInfo.dat";
 
-        loadFile(infoPath, new AssetData{
-                nullptr, {}, path, 0, nullptr,
-        });
+        AssetData pathData = {
+            .children = {},
+            .name = "",
+            .owner = nullptr,
+            .value = &path,
+        };
+
+        loadFile(path + "AssetInfo.xml", &pathData);
     }
 
-    void Assets::functions(std::string name, AssetData *data) {
-        if (name == "copy") {
-            RegNode *node = Reg::root->getNode(data->object["To"]->stringValue);
+    AssetData *Assets::loadFile(std::string path, AssetData *owner) {
+        using namespace tinyxml2;
 
-            delete data->object["To"];
-            data->object.erase("To");
+        XMLDocument file;
+        file.LoadFile(path.c_str());
 
-            for (auto &pair: data->object)
-                if (pair.second->resource != nullptr)
-                    node->addNode(pair.first)->data = pair.second->resource;
+        AssetData *currentData = new AssetData {
+            .children = {},
+            .owner = owner,
+            .value = nullptr,
+        };
+        owner->children.push_back(currentData);
 
-        } else if (name == "from_file") {
-            AssetData *assetPathValue = data;
-            while (assetPathValue->owner != nullptr) assetPathValue = assetPathValue->owner;
+        std::vector<XMLElement *> elements = {file.RootElement()};
+        int currentIndex = 0;
 
-            auto file = loadFile(assetPathValue->stringValue + data->stringValue, data->owner);
-            (*data) = *file;
-            delete file;
-        } else if (name == "texture") {
-            AssetData *assetPathValue = data;
-            while (assetPathValue->owner != nullptr) assetPathValue = assetPathValue->owner;
+        while (currentIndex > -1) {
+            std::string name = elements[currentIndex]->Name();
 
-            sf::Texture* texture = new sf::Texture();
-            texture->loadFromFile(assetPathValue->stringValue + data->stringValue);
-            data->resource = texture;
-            data->stringValue = "";
-        } else {
-            Log::erro("Not found function " + name);
-            exit(1);
+            if (elements[currentIndex]->Attribute("name") == nullptr) throw AssetException("No find name.");
+            currentData->name = std::string(elements[currentIndex]->Attribute("name"));
+            if (name == "value") {
+                types[std::string(elements[currentIndex]->Attribute("type"))](currentData, elements[currentIndex]);
+                currentData = currentData->owner;
+                currentIndex--;
+            } else if (name == "data") {
+                if (elements[currentIndex]->NoChildren()) {
+                    currentData = currentData->owner;
+                    currentIndex--;
+                    continue;
+                }
+
+                if (currentIndex + 1 < elements.size() && elements[currentIndex + 1]->Parent() == elements[currentIndex]) {
+                    if (elements[currentIndex + 1] == elements[currentIndex]->LastChildElement()) {
+                        if (elements[currentIndex]->Attribute("to") != nullptr) {
+                            auto to = std::string(elements[currentIndex]->Attribute("to"));
+                            for (auto child : currentData->children) {
+                                Reg::root->getNode(to)->addNode(child->name)->data = child->value;
+                            }
+                        }
+
+                        currentData = currentData->owner;
+                        currentIndex--;
+                        continue;
+                    } else {
+                        elements[currentIndex + 1]++;
+                    }
+                } else {
+                    elements.push_back(elements[currentIndex]->FirstChildElement());
+                }
+
+                auto newData = new AssetData {
+                    .children = {},
+                    .owner = currentData,
+                    .value = nullptr,
+                };
+                currentData->children.push_back(newData);
+                currentData = newData;
+                currentIndex++;
+
+            } else throw AssetException("Unknown element name.");
         }
 
-    }
-
-    AssetData *Assets::loadFile(std::string path, AssetData* owner) {
-        std::ifstream infoFile = std::ifstream();
-        infoFile.open(path);
-
-        if (!infoFile.is_open()) {
-            Log::erro("Can't load file \"" + path + "\".");
-            exit(1);
-        }
-
-        std::string infoData;
-
-        while (!infoFile.eof()) {
-            std::string line;
-            infoFile >> line;
-            infoData += line;
-        }
-
-        int index = 0;
-        auto* data = value(&infoData, &index, owner);
-        return data;
+        return nullptr;
     }
 }

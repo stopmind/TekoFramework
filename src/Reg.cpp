@@ -7,10 +7,10 @@ namespace Teko {
         
         std::string name = path.substr(0, firstDelimitrPos);
 
-        for (int i = 0; i < children.size(); i++) {
-            if (children[i]->getName() != name) continue;
-            if (firstDelimitrPos == -1) return children[i];
-            else return children[i]->getNode(path.substr(firstDelimitrPos+2));
+        for (int i = 0; i < _children.size(); i++) {
+            if (_children[i]->getName() != name) continue;
+            if (firstDelimitrPos == -1) return _children[i];
+            else return _children[i]->getNode(path.substr(firstDelimitrPos+2));
         }
 
         return nullptr;
@@ -21,43 +21,43 @@ namespace Teko {
     }
 
     void RegNode::delNode(std::string name) {
-        for (int i = 0; i < children.size(); i++) {
-            if (children[i]->getName() != name) continue;
+        for (int i = 0; i < _children.size(); i++) {
+            if (_children[i]->getName() != name) continue;
             
-            delete children[i];
-            children.erase(children.begin() + i);
+            delete _children[i];
+            _children.erase(_children.begin() + i);
             return;
         }
     }
 
     RegNode* RegNode::getOwner() {
-        return owner;
+        return _owner;
     }
 
     std::vector<RegNode*> RegNode::getChildren() {
-        return children;
+        return _children;
     }
 
     RegNode* RegNode::addNode(std::string name) {
         RegNode* newNode = new RegNode(this, name);
 
-        children.push_back(newNode);
+        _children.push_back(newNode);
         return newNode;
     }
 
     std::string RegNode::getName() {
-        return name;
+        return _name;
     }
     
     RegNode::RegNode(RegNode* ownerNode, std::string nodeName) {
-        children = std::vector<RegNode*>();
-        owner = ownerNode;
-        name = nodeName;
+        _children = std::vector<RegNode*>();
+        _owner = ownerNode;
+        _name = nodeName;
     }
 
     RegNode::~RegNode() {
-        for (int i = 0; i < children.size(); i++) {
-            delete children[i];
+        for (int i = 0; i < _children.size(); i++) {
+            delete _children[i];
         }
     }
 

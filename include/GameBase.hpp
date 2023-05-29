@@ -6,18 +6,19 @@
 namespace Teko {
     class GameBase {
         private:
-        sf::Clock *frameClock;
-        sf::Clock *tickClock;
+        sf::Clock *_frameClock;
+        sf::Clock *_tickClock;
+        sf::Clock *_deltaClock;
 
-        float minTimeBetwenFrames;
-        float minTimeBetwenTicks;
+        float _minTimeBetwenFrames;
+        float _minTimeBetwenTicks;
 
         protected:
-        sf::RenderWindow *window{};
-        bool stopped{};
+        sf::RenderWindow *_window;
+        bool _stopped{};
 
         virtual void init() = 0;
-        virtual void update() = 0;
+        virtual void update(float delta) = 0;
         virtual void tick() = 0;
         virtual void draw() = 0;
         virtual void event(sf::Event *event) = 0;

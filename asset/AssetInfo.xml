@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<data name="Main">
+    <data to="Textures" name="textures">
+        <value name="Agent" type="texture" path="Textures/Agent.png"/>
+    </data>
+</data>
